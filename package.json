@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.97.1",
     "@hashgraph/hedera-agent-kit": "^4.0.0",
     "@hashgraph/hedera-agent-kit-langchain": "^1.0.0",
     "@hiero-ledger/sdk": "^2.84.0",
