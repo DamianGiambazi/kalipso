@@ -8,19 +8,21 @@
 // or internal details to clients.
 
 export enum KalipsoErrorCode {
-  BAD_STATEMENT = 'BAD_STATEMENT',         // 400 — invalid input
-  AGENT_TIMEOUT = 'AGENT_TIMEOUT',         // 504 — Claude or Agent Kit too slow
-  AGENT_REFUSED = 'AGENT_REFUSED',         // 422 — Claude refused (content policy)
-  HCS_SUBMIT_FAILED = 'HCS_SUBMIT_FAILED', // 502 — Hedera network/fee/key issue
-  MIRROR_NODE_DOWN = 'MIRROR_NODE_DOWN',   // 503 — wall couldn't load
+  BAD_STATEMENT = 'BAD_STATEMENT',        // 400 — invalid input
+  AGENT_TIMEOUT = 'AGENT_TIMEOUT',        // 504 — Claude or Agent Kit too slow
+  AGENT_REFUSED = 'AGENT_REFUSED',        // 422 — Claude refused (content policy)
+  AGENT_UNAVAILABLE = 'AGENT_UNAVAILABLE',    // 503 — Claude API overloaded, try again
+  HCS_SUBMIT_FAILED = 'HCS_SUBMIT_FAILED',    // 502 — Hedera network/fee/key issue
+  MIRROR_NODE_DOWN = 'MIRROR_NODE_DOWN',     // 503 — wall couldn't load
   CONFIG_MISSING = 'CONFIG_MISSING',       // 500 — startup misconfig
-  INTERNAL = 'INTERNAL',                   // 500 — unexpected catch-all
+  INTERNAL = 'INTERNAL',             // 500 — unexpected catch-all
 }
 
 const HTTP_STATUS: Record<KalipsoErrorCode, number> = {
   [KalipsoErrorCode.BAD_STATEMENT]: 400,
   [KalipsoErrorCode.AGENT_TIMEOUT]: 504,
   [KalipsoErrorCode.AGENT_REFUSED]: 422,
+  [KalipsoErrorCode.AGENT_UNAVAILABLE]: 503,
   [KalipsoErrorCode.HCS_SUBMIT_FAILED]: 502,
   [KalipsoErrorCode.MIRROR_NODE_DOWN]: 503,
   [KalipsoErrorCode.CONFIG_MISSING]: 500,

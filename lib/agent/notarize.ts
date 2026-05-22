@@ -96,6 +96,28 @@ export async function notarize(rawStatement: unknown): Promise<KalipsoNotarizati
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : 'unknown error';
+
+    // Anthropic 529 — service overloaded, retry-friendly
+    if (message.includes('529') || message.toLowerCase().includes('overloaded')) {
+      logger.warn({ correlationId }, 'claude_overloaded');
+      throw new KalipsoError(
+        KalipsoErrorCode.AGENT_UNAVAILABLE,
+        'Kalipso is briefly overloaded. Please try again in a moment.',
+        { correlationId, cause: err },
+      );
+    }
+
+    // Anthropic 429 — rate limited
+    if (message.includes('429') || message.toLowerCase().includes('rate limit')) {
+      logger.warn({ correlationId }, 'claude_rate_limited');
+      throw new KalipsoError(
+        KalipsoErrorCode.AGENT_UNAVAILABLE,
+        'Kalipso is receiving too many requests right now. Please try again in a moment.',
+        { correlationId, cause: err },
+      );
+    }
+
+    // Our explicit timeout
     if (message.includes('timed out')) {
       throw new KalipsoError(
         KalipsoErrorCode.AGENT_TIMEOUT,
@@ -103,6 +125,8 @@ export async function notarize(rawStatement: unknown): Promise<KalipsoNotarizati
         { correlationId, cause: err },
       );
     }
+
+    // Anything else — log full error, return generic refused message
     logger.error({ correlationId, err }, 'claude_query_failed');
     throw new KalipsoError(
       KalipsoErrorCode.AGENT_REFUSED,
