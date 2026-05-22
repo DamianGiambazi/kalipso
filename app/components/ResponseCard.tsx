@@ -1,4 +1,5 @@
 import type { KalipsoNotarization } from "@/lib/types";
+import { toHashscanTransactionUrl } from "@/lib/hashscan-url";
 
 interface ResponseCardProps {
   notarization: KalipsoNotarization;
@@ -6,6 +7,7 @@ interface ResponseCardProps {
 
 export function ResponseCard({ notarization }: ResponseCardProps) {
   const formattedTimestamp = formatTimestamp(notarization.consensusTimestamp);
+  const hashscanUrl = toHashscanTransactionUrl(notarization.transactionId);
 
   return (
     <section
@@ -69,7 +71,7 @@ export function ResponseCard({ notarization }: ResponseCardProps) {
         {/* Footer link */}
         <div className="flex justify-end">
           <a
-            href={notarization.hashscanUrl}
+            href={hashscanUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors"

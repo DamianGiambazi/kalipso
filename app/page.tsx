@@ -6,6 +6,8 @@ import { Hero } from "./components/Hero";
 import { StatementForm } from "./components/StatementForm";
 import { ResponseCard } from "./components/ResponseCard";
 import { ErrorCard } from "./components/ErrorCard";
+import { Ledger } from "./components/Ledger";
+import { useWallPoll } from "./hooks/useWallPoll";
 import type { KalipsoNotarization } from "@/lib/types";
 
 interface ErrorState {
@@ -20,7 +22,10 @@ export default function HomePage() {
   const [isRecording, setIsRecording] = useState(false);
   const responseRef = useRef<HTMLDivElement>(null);
 
-  // Scroll the response into view when it appears
+  // Polling hook — fetches /api/wall every 3s, supports optimistic prepend
+  const { entries, isLoading, error: wallError, prependOptimistic } = useWallPoll();
+
+  // Smooth-scroll the response/error into view when it appears
   useEffect(() => {
     if ((notarization || error) && responseRef.current) {
       responseRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -30,6 +35,8 @@ export default function HomePage() {
   function handleResult(result: KalipsoNotarization) {
     setError(null);
     setNotarization(result);
+    // Optimistically prepend so the user sees their entry in the ledger immediately
+    prependOptimistic(result);
   }
 
   function handleError(err: ErrorState) {
@@ -44,7 +51,7 @@ export default function HomePage() {
         <Hero />
 
         <main id="main">
-          {/* Anchor for the result region — Hero stays at top, scrollIntoView lands here */}
+          {/* Anchor for the result region */}
           <div ref={responseRef}>
             {notarization && <ResponseCard notarization={notarization} />}
             {error && (
@@ -63,6 +70,8 @@ export default function HomePage() {
             onRecording={setIsRecording}
             isRecording={isRecording}
           />
+
+          <Ledger entries={entries} isLoading={isLoading} error={wallError} />
         </main>
       </div>
     </>
