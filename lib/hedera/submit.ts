@@ -29,9 +29,9 @@ interface SubmitArgs {
 }
 
 interface SubmitResult {
-  transactionId: string;
+  transactionId: string;       // canonical consensus_timestamp "SEC.NS" — HashScan-resolvable
   topicId: string;
-  consensusTimestamp?: string;
+  consensusTimestamp?: string; // same as transactionId, kept for display semantics
   sequenceNumber: number;
 }
 
@@ -39,6 +39,12 @@ interface SubmitResult {
  * Submits a Kalipso notarization to the HCS topic. Always-on-chain;
  * never optional. Throws KalipsoError(HCS_SUBMIT_FAILED) on any
  * network, fee, or signature problem.
+ *
+ * Returns the CANONICAL consensus timestamp as `transactionId`, retrieved
+ * from the TransactionRecord (post-consensus). This is the value HashScan
+ * resolves via /transaction/{SEC.NS}. The SDK-side "valid-start" id
+ * returned by submitted.transactionId is NOT used for the UI link — it
+ * differs from the consensus timestamp and HashScan cannot find it.
  */
 export async function submitNotarizationToHcs(args: SubmitArgs): Promise<SubmitResult> {
   const { statement, aiComment, register, statementHash, timestamp, correlationId } = args;
@@ -63,9 +69,6 @@ export async function submitNotarizationToHcs(args: SubmitArgs): Promise<SubmitR
   const messageBytes = Buffer.byteLength(messageJson, 'utf8');
 
   if (messageBytes > 1024) {
-    // Defensive — should never hit this with the preview cap, but if
-    // we somehow do, fail with a clear error rather than letting
-    // Hedera reject the transaction with a less-readable message.
     throw new KalipsoError(
       KalipsoErrorCode.BAD_STATEMENT,
       `Message payload exceeds HCS 1024-byte limit (${messageBytes} bytes). Truncate the statement.`,
@@ -104,20 +107,34 @@ export async function submitNotarizationToHcs(args: SubmitArgs): Promise<SubmitR
       );
     }
 
-    const transactionId = submitted.transactionId.toString();
-
-    // Consensus timestamp isn't always on the receipt — mirror node fills it in later.
-    // We surface what we have; the route can re-query the mirror node if needed.
-    const consensusTimestamp = (receipt as unknown as { consensusTimestamp?: { toString(): string } })
-      .consensusTimestamp?.toString();
+    // Retrieve the canonical consensus timestamp from the TransactionRecord.
+    // This is the network-confirmed timestamp set by Hedera consensus, NOT
+    // the SDK-side valid-start id. HashScan resolves /transaction/{SEC.NS}
+    // against this value.
+    let consensusTimestamp: string;
+    try {
+      const record = await submitted.getRecord(hederaClient);
+      const ts = record.consensusTimestamp;
+      // Timestamp.seconds is a Long; nanos is a number.
+      const seconds = ts.seconds.toString();
+      const nanos = String(ts.nanos).padStart(9, '0');
+      consensusTimestamp = `${seconds}.${nanos}`;
+    } catch (err) {
+      logger.error({ correlationId, err }, 'hcs_record_fetch_failed');
+      throw new KalipsoError(
+        KalipsoErrorCode.HCS_SUBMIT_FAILED,
+        'Submission succeeded but record retrieval failed.',
+        { correlationId, cause: err },
+      );
+    }
 
     logger.info(
-      { correlationId, transactionId, sequenceNumber, consensusTimestamp },
+      { correlationId, consensusTimestamp, sequenceNumber },
       'hcs_submit_success',
     );
 
     return {
-      transactionId,
+      transactionId: consensusTimestamp, // HashScan-resolvable
       topicId: env.KALIPSO_TOPIC_ID,
       consensusTimestamp,
       sequenceNumber,
