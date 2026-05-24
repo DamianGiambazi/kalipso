@@ -28,7 +28,7 @@ Two registers, automatically selected:
 4. Server hashes `statement || aiComment || timestamp` (SHA-256, pipe-delimited, canonical)
 5. Hedera Agent Kit submits the structured JSON payload to HCS topic `0.0.9020209`
 6. Response card displays the transaction with a direct HashScan link
-7. Wall of Shame polls the mirror node every 3s, showing all recent inscriptions
+7. The Ledger polls the mirror node every 3s, showing all recent inscriptions
 
 The Hedera write is **deterministic** — the agent doesn't decide whether to write. It generates the comment; the server writes. This is the "hybrid" pattern: AI for creativity, deterministic code for chain interaction.
 
